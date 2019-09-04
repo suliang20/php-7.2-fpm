@@ -64,11 +64,6 @@ RUN \
         # for odbc pdo_odbc
         unixodbc-dev \
 
-
-
-
-    # for iconv mcrypt
-    && docker-php-ext-install $mc mcrypt \
     # for gd
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-install $mc gd \
@@ -123,22 +118,21 @@ RUN \
     && docker-php-ext-install $mc sysvshm \
 
     # Install PECL extensions
+
     # for redis
     && pecl install redis-4.0.1 && docker-php-ext-enable redis \
 
-    # for gearman
-    && pecl install gearman && docker-php-ext-enable gearman \
+    # for imagick require PHP version 7.2
+    && pecl install imagick && docker-php-ext-enable imagick \
 
-    # for imagick require PHP version 5.6
-    && pecl install imagick-3.4.3 && docker-php-ext-enable imagick \
+    # for memcached require PHP version 7.2
+    && pecl install memcached && docker-php-ext-enable memcached \
 
-    ## for memcached require PHP version 5.6
-    #&& pecl install memcached-2.2.0 && docker-php-ext-enable memcached \
-    # for memcached require PHP version 7.0+
-    && pecl install memcache && docker-php-ext-enable memcache \
+    # for mcrypt require PHP version 7.2
+    && pecl install mcrypt-1.0.2 && docker-php-ext-enable mcrypt \
 
-    # for mongodb
-    && pecl install mongodb-1.2.2 && echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini \
+    # for mongodb 7.2
+    && pecl install mongodb-1.4.2 && echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini \
 
     # 增加 odbc, pdo_odbc 扩展
     && set -ex; \
@@ -154,50 +148,23 @@ RUN \
     docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr; \
     docker-php-ext-install odbc pdo_odbc \
 
-    # install opcache
-    #for opcache php5.6+
+    #for opcache
     && docker-php-ext-configure opcache --enable-opcache \
     && docker-php-ext-install $mc opcache \
-    ## for opcache php5.4
-    #&& curl -fsSL https://pecl.php.net/get/zendopcache-7.0.5.tgz > zendopcache-7.0.5.tgz \
-    #&& mkdir zendopcache \
-    #&& tar -xf zendopcache-7.0.5.tgz -C zendopcache --strip-components=1 \
-    #&& ( cd zendopcache && phpize && ./configure && make $mc && make install ) \
-    #&& docker-php-ext-enable opcache \
 
-    # install xdebug
     # for xdebug php7.0
     && curl -fsSL 'https://pecl.php.net/get/xdebug-2.6.1.tgz' -o xdebug-2.6.1.tgz \
     && mkdir xdebug \
     && tar -xf xdebug-2.6.1.tgz -C xdebug --strip-components=1 \
     && ( cd xdebug && phpize && ./configure && make $mc && make install ) \
     && docker-php-ext-enable xdebug \
-    ## for xedug php5.6
-    #&& curl -fsSL 'https://pecl.php.net/get/xdebug-2.5.5.tgz' -o xdebug-2.5.5.tgz \
-    #&& mkdir xdebug \
-    #&& tar -xf xdebug-2.5.5.tgz -C xdebug --strip-components=1 \
-    #&& ( cd xdebug && phpize && ./configure && make $mc && make install ) \
-    #&& docker-php-ext-enable xdebug \
-    ## for xedug php5.4
-    #&& curl -fsSL 'https://pecl.php.net/get/xdebug-2.4.1.tgz' -o xdebug-2.4.1.tgz \
-    #&& mkdir xdebug \
-    #&& tar -xf xdebug-2.4.1.tgz -C xdebug --strip-components=1 \
-    #&& ( cd xdebug && phpize && ./configure && make $mc && make install ) \
-    #&& docker-php-ext-enable xdebug \
 
-    # install swoole
     # swoole require PHP version 7.0 or later.
     && curl -fsSL 'https://pecl.php.net/get/swoole-4.4.3.tgz' -o swoole-4.4.3.tgz \
     && mkdir swoole \
     && tar -xf swoole-4.4.3.tgz -C swoole --strip-components=1 \
     && cd swoole && phpize && ./configure && make && make install \
     && docker-php-ext-enable swoole \
-    ## swoole require PHP version 5.5 or later.
-    #&& curl -fsSL 'https://pecl.php.net/get/swoole-2.0.11.tgz' -o swoole-2.0.11.tgz \
-    #&& mkdir swoole \
-    #&& tar -xf swoole-2.0.11.tgz -C swoole --strip-components=1 \
-    #&& cd swoole && phpize && ./configure && make && make install \
-    #&& docker-php-ext-enable swoole \
 
     && docker-php-source delete \
     && apt-get clean all \
