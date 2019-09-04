@@ -1,175 +1,219 @@
 # 从官方基础版本构建
 FROM php:7.2-fpm
 
-# 镜像信息
-LABEL Author="Leo"
-LABEL Version="1.0.25-fpm"
-LABEL Description="PHP FPM 7.2 镜像. All extensions."
+# extions
 
-# 官方版本默认安装扩展:
-# Core, ctype, curl
-# date, dom
-# fileinfo, filter, ftp
-# hash
-# iconv
-# json
-# libxml
-# mbstring, mysqlnd
-# openssl
-# pcre, PDO, pdo_sqlite, Phar, posix
-# readline, Reflection, session, SimpleXML, sodium, SPL, sqlite3, standard
-# tokenizer
-# xml, xmlreader, xmlwriter
-# zlib
+# Install Core extension
+#
+# bcmath bz2 calendar ctype curl dba dom enchant exif fileinfo filter ftp gd gettext gmp hash iconv
+# imap interbase intl json ldap mbstring mcrypt mssql mysql mysqli oci8 odbc opcache pcntl
+# pdo pdo_dblib pdo_firebird pdo_mysql pdo_oci pdo_odbc pdo_pgsql pdo_sqlite pgsql phar posix
+# pspell readline recode reflection session shmop simplexml snmp soap sockets spl standard
+# sybase_ct sysvmsg sysvsem sysvshm tidy tokenizer wddx xml xmlreader xmlrpc xmlwriter xsl zip
+#
+# Must install dependencies for your extensions manually, if need.
+RUN \
+    export mc="-j$(nproc)" \
+    && export http_proxy="http://suliang20:06jLfjME@144.202.85.250:3128" \
+    && export https_proxy="http://suliang20:06jLfjME@144.202.85.250:3128" \
+    && apt-get update \
+    && apt-get install -y \
+        # for iconv mcrypt
+        libmcrypt-dev \
+        #   for gd
+        libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
+        # for bz2
+        libbz2-dev \
+        # for enchant
+        libenchant-dev \
+        # for gmp
+        libgmp-dev \
+        # for soap wddx xmlrpc tidy xsl
+        libxml2-dev libtidy-dev libxslt1-dev \
+        # for zip
+        libzip-dev \
+        # for snmp
+        libsnmp-dev snmp \
+        # for pgsql pdo_pgsql
+        libpq-dev \
+        # for pspell
+        libpspell-dev \
+        # for recode
+        librecode-dev \
+        # for pdo_firebird
+        firebird-dev \
+        # for pdo_dblib
+        freetds-dev \
+        # for ldap
+        libldap2-dev \
+        # for imap
+        libc-client-dev libkrb5-dev \
+        # for interbase
+        firebird-dev \
+        # for intl
+        libicu-dev \
 
-# 1.0.2 增加 bcmath, calendar, exif, gettext, sockets, dba,
-# mysqli, pcntl, pdo_mysql, shmop, sysvmsg, sysvsem, sysvshm 扩展
-RUN docker-php-ext-install -j$(nproc) bcmath calendar exif gettext \
-sockets dba mysqli pcntl pdo_mysql shmop sysvmsg sysvsem sysvshm
+        # for gearman
+        libgearman-dev \
+        # for magick
+        libmagickwand-dev \
+        # for memcached
+        zlib1g-dev libmemcached-dev \
+        # for mongodb
+        autoconf pkg-config libssl-dev \
+        # for odbc pdo_odbc
+        unixodbc-dev \
 
-# 1.0.3 增加 bz2 扩展, 读写 bzip2（.bz2）压缩文件
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libbz2-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) bz2
 
-# 1.0.4 增加 enchant 扩展, 拼写检查库
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libenchant-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) enchant
 
-# 1.0.5 增加 GD 扩展. 图像处理
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libfreetype6-dev libjpeg62-turbo-dev libpng-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ && \
-docker-php-ext-install -j$(nproc) gd
 
-# 1.0.6 增加 gmp 扩展, GMP
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libgmp-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) gmp
+    # for iconv mcrypt
+    && docker-php-ext-install $mc mcrypt \
+    # for gd
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-install $mc gd \
+    # for bz2
+    && docker-php-ext-install $mc bz2 \
+    # for enchant
+    && docker-php-ext-install $mc enchant \
+    # for gmp
+    && ln -s /usr/include/x86_64-linux-gnu/gmp.h /usr/include/gmp.h \
+    && docker-php-ext-install $mc gmp \
+    # for soap wddx xmlrpc tidy xsl
+    && docker-php-ext-install $mc soap wddx xmlrpc tidy xsl \
+    # for zip
+    && docker-php-ext-install $mc zip \
+    # for snmp
+    && docker-php-ext-install $mc snmp \
+    # for pgsql pdo_pgsql
+    && docker-php-ext-install $mc pgsql pdo_pgsql \
+    # for pspell
+    && docker-php-ext-install $mc pspell \
+    # for recode
+    && docker-php-ext-install $mc recode \
+    # for pdo_firebird
+    && docker-php-ext-install $mc pdo_firebird \
+    # for pdo_dblib
+    && docker-php-ext-configure pdo_dblib --with-libdir=lib/x86_64-linux-gnu \
+    && docker-php-ext-install $mc pdo_dblib \
+    # for ldap
+    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu \
+    && docker-php-ext-install $mc ldap \
+    # for imap
+    && docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
+    && docker-php-ext-install $mc imap \
+    # for interbase
+    && docker-php-ext-install $mc interbase \
+    # for intl
+    && docker-php-ext-install $mc intl \
 
-# 1.0.7 增加 soap wddx xmlrpc tidy xsl 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libxml2-dev libtidy-dev libxslt1-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) soap wddx xmlrpc tidy xsl
+    # no dependency extension
+    && docker-php-ext-install $mc bcmath \
+    && docker-php-ext-install $mc calendar \
+    && docker-php-ext-install $mc exif \
+    && docker-php-ext-install $mc gettext \
+    && docker-php-ext-install $mc sockets \
+    && docker-php-ext-install $mc dba \
+    && docker-php-ext-install $mc mysqli \
+    && docker-php-ext-install $mc pcntl \
+    && docker-php-ext-install $mc pdo_mysql \
+    && docker-php-ext-install $mc shmop \
+    && docker-php-ext-install $mc sysvmsg \
+    && docker-php-ext-install $mc sysvsem \
+    && docker-php-ext-install $mc sysvshm \
 
-# 1.0.8 增加 zip 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libzip-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) zip
+    # Install PECL extensions
+    # for redis
+    && pecl install redis-4.0.1 && docker-php-ext-enable redis \
 
-# 1.0.9 增加 snmp 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libsnmp-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) snmp
+    # for gearman
+    && pecl install gearman && docker-php-ext-enable gearman \
 
-# 1.0.10 增加 pgsql, pdo_pgsql 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libpq-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) pgsql pdo_pgsql
+    # for imagick require PHP version 5.6
+    && pecl install imagick-3.4.3 && docker-php-ext-enable imagick \
 
-# 1.0.11 增加 pspell 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libpspell-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) pspell
+    ## for memcached require PHP version 5.6
+    #&& pecl install memcached-2.2.0 && docker-php-ext-enable memcached \
+    # for memcached require PHP version 7.0+
+    && pecl install memcache && docker-php-ext-enable memcache \
 
-# 1.0.12 增加 recode 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends librecode-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) recode
+    # for mongodb
+    && pecl install mongodb-1.2.2 && echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini \
 
-# 1.0.13 增加 PDO_Firebird 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends firebird-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) pdo_firebird
+    # 增加 odbc, pdo_odbc 扩展
+    && set -ex; \
+    docker-php-source extract; \
+    { \
+         echo '# https://github.com/docker-library/php/issues/103#issuecomment-271413933'; \
+         echo 'AC_DEFUN([PHP_ALWAYS_SHARED],[])dnl'; \
+         echo; \
+         cat /usr/src/php/ext/odbc/config.m4; \
+    } > temp.m4; \
+    mv temp.m4 /usr/src/php/ext/odbc/config.m4; \
+    docker-php-ext-configure odbc --with-unixODBC=shared,/usr; \
+    docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr; \
+    docker-php-ext-install odbc pdo_odbc \
 
-# 1.0.14 增加 pdo_dblib 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends freetds-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-configure pdo_dblib --with-libdir=lib/x86_64-linux-gnu && \
-docker-php-ext-install -j$(nproc) pdo_dblib
+    # install opcache
+    #for opcache php5.6+
+    && docker-php-ext-configure opcache --enable-opcache \
+    && docker-php-ext-install $mc opcache \
+    ## for opcache php5.4
+    #&& curl -fsSL https://pecl.php.net/get/zendopcache-7.0.5.tgz > zendopcache-7.0.5.tgz \
+    #&& mkdir zendopcache \
+    #&& tar -xf zendopcache-7.0.5.tgz -C zendopcache --strip-components=1 \
+    #&& ( cd zendopcache && phpize && ./configure && make $mc && make install ) \
+    #&& docker-php-ext-enable opcache \
 
-# 1.0.15 增加 ldap 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libldap2-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu && \
-docker-php-ext-install -j$(nproc) ldap
+    # install xdebug
+    # for xdebug php7.0
+    && curl -fsSL 'https://pecl.php.net/get/xdebug-2.6.1.tgz' -o xdebug-2.6.1.tgz \
+    && mkdir xdebug \
+    && tar -xf xdebug-2.6.1.tgz -C xdebug --strip-components=1 \
+    && ( cd xdebug && phpize && ./configure && make $mc && make install ) \
+    && docker-php-ext-enable xdebug \
+    ## for xedug php5.6
+    #&& curl -fsSL 'https://pecl.php.net/get/xdebug-2.5.5.tgz' -o xdebug-2.5.5.tgz \
+    #&& mkdir xdebug \
+    #&& tar -xf xdebug-2.5.5.tgz -C xdebug --strip-components=1 \
+    #&& ( cd xdebug && phpize && ./configure && make $mc && make install ) \
+    #&& docker-php-ext-enable xdebug \
+    ## for xedug php5.4
+    #&& curl -fsSL 'https://pecl.php.net/get/xdebug-2.4.1.tgz' -o xdebug-2.4.1.tgz \
+    #&& mkdir xdebug \
+    #&& tar -xf xdebug-2.4.1.tgz -C xdebug --strip-components=1 \
+    #&& ( cd xdebug && phpize && ./configure && make $mc && make install ) \
+    #&& docker-php-ext-enable xdebug \
 
-# 1.0.16 增加 imap 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libc-client-dev libkrb5-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
-docker-php-ext-install -j$(nproc) imap
+    # install swoole
+    # swoole require PHP version 7.0 or later.
+    && curl -fsSL 'https://pecl.php.net/get/swoole-4.4.3.tgz' -o swoole-4.4.3.tgz \
+    && mkdir swoole \
+    && tar -xf swoole-4.4.3.tgz -C swoole --strip-components=1 \
+    && cd swoole && phpize && ./configure && make && make install \
+    && docker-php-ext-enable swoole \
+    ## swoole require PHP version 5.5 or later.
+    #&& curl -fsSL 'https://pecl.php.net/get/swoole-2.0.11.tgz' -o swoole-2.0.11.tgz \
+    #&& mkdir swoole \
+    #&& tar -xf swoole-2.0.11.tgz -C swoole --strip-components=1 \
+    #&& cd swoole && phpize && ./configure && make && make install \
+    #&& docker-php-ext-enable swoole \
 
-# 1.0.17 增加 interbase 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends firebird-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) interbase
+    && docker-php-source delete \
+    && apt-get clean all \
+    && rm -rf /var/lib/apt/lists/*  \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/* \
+    && rm -rf /usr/share/doc/* \
+    && echo 'PHP 7.2 extensions installed.'
 
-# 1.0.18 增加 intl 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libicu-dev && \
-rm -r /var/lib/apt/lists/* && \
-docker-php-ext-install -j$(nproc) intl
 
-# 1.0.19 增加 mcrypt 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends libmcrypt-dev && \
-rm -r /var/lib/apt/lists/* && \
-pecl install mcrypt-1.0.1 && \
-docker-php-ext-enable mcrypt
+# install composer
+RUN curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/bin
+ENV PATH /root/.composer/vendor/bin:$PATH
 
-# 1.0.20 imagick 扩展
-RUN export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" && \
-apt-get update && \
-apt-get install -y --no-install-recommends libmagickwand-dev && \
-rm -rf /var/lib/apt/lists/* && \
-pecl install imagick-3.4.3 && \
-docker-php-ext-enable imagick
-
-# 1.0.21 增加 Memcached 扩展
-RUN apt-get update && \
-apt-get install -y --no-install-recommends zlib1g-dev libmemcached-dev && \
-rm -r /var/lib/apt/lists/* && \
-pecl install memcached && \
-docker-php-ext-enable memcached
-
-# 1.0.22 redis 扩展
-RUN pecl install redis-4.0.1 && docker-php-ext-enable redis
-
-# 1.0.23 增加 opcache 扩展
-RUN docker-php-ext-configure opcache --enable-opcache && docker-php-ext-install opcache
-
-# 1.0.24 增加 odbc, pdo_odbc 扩展
-RUN set -ex; \
-docker-php-source extract; \
-{ \
-     echo '# https://github.com/docker-library/php/issues/103#issuecomment-271413933'; \
-     echo 'AC_DEFUN([PHP_ALWAYS_SHARED],[])dnl'; \
-     echo; \
-     cat /usr/src/php/ext/odbc/config.m4; \
-} > temp.m4; \
-mv temp.m4 /usr/src/php/ext/odbc/config.m4; \
-apt-get update; \
-apt-get install -y --no-install-recommends unixodbc-dev; \
-rm -rf /var/lib/apt/lists/*; \
-docker-php-ext-configure odbc --with-unixODBC=shared,/usr; \
-docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr; \
-docker-php-ext-install odbc pdo_odbc; \
-docker-php-source delete
-
+# install phpunit require PHP version 7.2 or later
+RUN curl https://phar.phpunit.de/phpunit.phar -L > phpunit.phar \
+    && chmod +x phpunit.phar \
+    && mv phpunit.phar /usr/local/bin/phpunit \
+    && phpunit --version
