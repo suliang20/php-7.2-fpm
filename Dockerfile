@@ -13,12 +13,15 @@ FROM php:7.2-fpm
 #
 # Must install dependencies for your extensions manually, if need.
 RUN \
-    export mc="-j$(nproc)" \
+    && export mc="-j$(nproc)" \
     && apt-get update \
     && apt-get install -y \
+        # for git
+        git \
+        libcurl4-gnutls-dev \
         # for iconv mcrypt
         libmcrypt-dev \
-        #   for gd
+        # for gd
         libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
         # for bz2
         libbz2-dev \
@@ -50,7 +53,6 @@ RUN \
         firebird-dev \
         # for intl
         libicu-dev \
-
         # for gearman
         libgearman-dev \
         # for magick
@@ -61,7 +63,7 @@ RUN \
         autoconf pkg-config libssl-dev \
         # for odbc pdo_odbc
         unixodbc-dev \
-
+    #  ========== docker-php-ext install ===============================
     # for gd
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-install $mc gd \
@@ -99,8 +101,8 @@ RUN \
     && docker-php-ext-install $mc interbase \
     # for intl
     && docker-php-ext-install $mc intl \
-
     # no dependency extension
+    && docker-php-ext-install $mc mcrypt \
     && docker-php-ext-install $mc bcmath \
     && docker-php-ext-install $mc calendar \
     && docker-php-ext-install $mc exif \
@@ -114,56 +116,24 @@ RUN \
     && docker-php-ext-install $mc sysvmsg \
     && docker-php-ext-install $mc sysvsem \
     && docker-php-ext-install $mc sysvshm \
-
-    # Install PECL extensions
-
+    # ================ Install PECL extensions ====================
     # for redis
-    && pecl install redis-4.0.1 && docker-php-ext-enable redis \
-
-    # for imagick require PHP version 7.2
+    && pecl install redis && docker-php-ext-enable redis \
+    # for imagick require PHP
     && pecl install imagick && docker-php-ext-enable imagick \
-
-    # for memcached require PHP version 7.2
+    # for memcached require PHP
     && pecl install memcached && docker-php-ext-enable memcached \
-
-    # for mcrypt require PHP version 7.2
-    && pecl install mcrypt-1.0.2 && docker-php-ext-enable mcrypt \
-
-    # for mongodb 7.2
-    && pecl install mongodb-1.4.2 && echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini \
-
-    # 增加 odbc, pdo_odbc 扩展
-    && set -ex; \
-    docker-php-source extract; \
-    { \
-         echo '# https://github.com/docker-library/php/issues/103#issuecomment-271413933'; \
-         echo 'AC_DEFUN([PHP_ALWAYS_SHARED],[])dnl'; \
-         echo; \
-         cat /usr/src/php/ext/odbc/config.m4; \
-    } > temp.m4; \
-    mv temp.m4 /usr/src/php/ext/odbc/config.m4; \
-    docker-php-ext-configure odbc --with-unixODBC=shared,/usr; \
-    docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr; \
-    docker-php-ext-install odbc pdo_odbc \
-
-    #for opcache
-    && docker-php-ext-configure opcache --enable-opcache \
-    && docker-php-ext-install $mc opcache \
-
-    # for xdebug php7.0
-    && curl -fsSL 'https://pecl.php.net/get/xdebug-2.6.1.tgz' -o xdebug-2.6.1.tgz \
-    && mkdir xdebug \
-    && tar -xf xdebug-2.6.1.tgz -C xdebug --strip-components=1 \
-    && ( cd xdebug && phpize && ./configure && make $mc && make install ) \
-    && docker-php-ext-enable xdebug \
-
-    # swoole require PHP version 7.0 or later.
-    && curl -fsSL 'https://pecl.php.net/get/swoole-4.4.3.tgz' -o swoole-4.4.3.tgz \
-    && mkdir swoole \
-    && tar -xf swoole-4.4.3.tgz -C swoole --strip-components=1 \
-    && cd swoole && phpize && ./configure && make && make install \
-    && docker-php-ext-enable swoole \
-
+    # for mongodb
+    && pecl install mongodb && docker-php-ext-enable mongodb \
+    # for swoole
+    && pecl install swoole && docker-php-ext-enable swoole \
+    # for msgpack
+    && pecl install msgpack && docker-php-ext-enable msgpack \
+    # for yar
+    && pecl install yar && docker-php-ext-enable yar \
+    # for yaf
+    && pecl install yaf && docker-php-ext-enable yaf \
+    # clear tmp data
     && docker-php-source delete \
     && apt-get clean all \
     && rm -rf /var/lib/apt/lists/*  \
@@ -172,13 +142,7 @@ RUN \
     && rm -rf /usr/share/doc/* \
     && echo 'PHP 7.2 extensions installed.'
 
-
 # install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/bin
 ENV PATH /root/.composer/vendor/bin:$PATH
 
-# install phpunit require PHP version 7.2 or later
-RUN curl https://phar.phpunit.de/phpunit.phar -L > phpunit.phar \
-    && chmod +x phpunit.phar \
-    && mv phpunit.phar /usr/local/bin/phpunit \
-    && phpunit --version
